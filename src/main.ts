@@ -98,6 +98,8 @@ const rotateScreen = $("screen-rotate");
 
 document.body.classList.toggle("touch", isTouch);
 document.body.classList.toggle("app", APP);
+// The app's WebView can't hand its bundled privacy.html to the browser: link the site's copy.
+if (APP) document.querySelectorAll<HTMLAnchorElement>("a.privacy-link").forEach((a) => (a.href = "https://poopy-bird.com/privacy.html"));
 
 function showScreen(name: keyof typeof screens | null): void {
   for (const [k, el] of Object.entries(screens)) show(el, k === name);
