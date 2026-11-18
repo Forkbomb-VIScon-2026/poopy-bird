@@ -24,6 +24,8 @@ body.privacy-page {
   font-size: clamp(44px, 9vw, 84px);
   text-decoration: none;
   line-height: 1;
+  /* Room for its drop shadow and float, as on the start screen. */
+  margin: 4px 0 20px;
 }
 
 /* Like the credits card, but the page scrolls instead of the card. */
