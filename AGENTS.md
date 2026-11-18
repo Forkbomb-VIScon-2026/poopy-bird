@@ -13,7 +13,7 @@ gh pr merge --auto --squash
 GitHub merges the PR once the required checks (`check` and `nix` from
 `ci.yml`) pass. If a check fails, the PR stays open: fix it on the branch.
 
-Merging doesn't deploy. The public site (poopybird.com) is the Nix package
+Merging doesn't deploy. The public site (poopy-bird.com) is the Nix package
 (`nix build`), deployed by Nicola from his infra repo, which pins a commit of
 this one. Still run `npm run lint`, `npm test` and `npm run build` locally
 first, and actually try changes that the checks can't see (gameplay, camera,
@@ -79,7 +79,7 @@ npm run typecheck      # tsconfig.json (browser) + tsconfig.node.json (collector
 npm run data:pull      # face dataset from the VM into data/ (over SSH; see README "Face dataset")
 npm run tunnel         # SSH tunnel to the VM, so the local recorder can upload (the public site needs the ETH login)
 npm run eval           # detection scoreboard over data/ (variants in scripts/eval/variants.ts)
-nix build              # the production build as the Nix package, in result/ (what poopybird.com serves)
+nix build              # the production build as the Nix package, in result/ (what poopy-bird.com serves)
 npm run app:dev        # the Android app on a USB phone, showing the debug dev server (needs JDK 21 + Android SDK, README "Android app")
 npm run app:run        # the Android app with the production build inside (debug APK, installed over USB)
 npm run app:release    # signed release APK + AAB (needs android/keystore.properties; README "Release builds")
