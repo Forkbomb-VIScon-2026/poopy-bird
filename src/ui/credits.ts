@@ -37,7 +37,8 @@ export function fillCredits(): void {
 
 /** A link opening in a new tab (in the app, the browser), or plain text. */
 function link(l: Linked): Node {
-  if (!l.url) return document.createTextNode(l.text);
+  // https only: a javascript: URL in a CREDITS.md would run on click.
+  if (!l.url?.startsWith("https://")) return document.createTextNode(l.text);
   const a = document.createElement("a");
   a.href = l.url;
   a.target = "_blank";

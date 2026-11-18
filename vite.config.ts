@@ -15,6 +15,28 @@ function commit(): string {
 }
 
 /**
+ * MediaPipe Tasks reports usage (task, OS, version, latencies) to Google every minute. Start its
+ * logger in the state it falls into when a send fails: it then queues and sends nothing.
+ * Fails the build if a MediaPipe update changes the code, so it can't quietly come back.
+ */
+function noMediapipeTelemetry(): Plugin {
+  const start = "this.h=setInterval(()=>{this.flush()},6e4)}";
+  let patched = 0;
+  return {
+    name: "no-mediapipe-telemetry",
+    transform(code, id) {
+      if (!id.includes("@mediapipe/tasks-vision") || !code.includes("odml.pa.googleapis.com")) return null;
+      if (code.split(start).length !== 2) this.error("MediaPipe's usage logger changed: update noMediapipeTelemetry");
+      patched++;
+      return { code: code.replace(start, 'this.error=Error("telemetry off")}'), map: null };
+    },
+    buildEnd(err) {
+      if (!err && this.environment?.mode === "build" && patched === 0) this.error("MediaPipe's usage logger wasn't found");
+    },
+  };
+}
+
+/**
  * Dev server only: the debug panel's "Save perf log" posts its CSV here, and it
  * lands in perf-logs/ of this checkout (so a phone on `adb reverse` saves to the laptop).
  */
@@ -50,7 +72,9 @@ function perfLog(): Plugin {
 }
 
 export default defineConfig(({ mode }) => ({
-  plugins: [perfLog()],
+  plugins: [noMediapipeTelemetry(), perfLog()],
+  // Not pre-bundled, so noMediapipeTelemetry applies in dev too.
+  optimizeDeps: { exclude: ["@mediapipe/tasks-vision"] },
   define: { __APP_COMMIT__: JSON.stringify(commit()) },
   server: {
     port: 5173,
@@ -69,6 +93,6 @@ export default defineConfig(({ mode }) => ({
     rolldownOptions: { input: { main: "index.html", ...(mode === "debug" && { collect: "collect.html" }) } },
   },
   // The face worker (face-worker.ts) is a module worker: MediaPipe loads its WASM loader with import() there.
-  worker: { format: "es" },
+  worker: { format: "es", plugins: () => [noMediapipeTelemetry()] },
   test: { include: ["src/**/*.test.ts", "collector/**/*.test.ts"] },
 }));

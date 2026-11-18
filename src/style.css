@@ -656,6 +656,12 @@ svg.face {
   margin: 14px 0;
 }
 
+/* The About section's privacy link looks like the buttons next to it. */
+a.btn {
+  display: inline-block;
+  text-decoration: none;
+}
+
 .btn {
   font: inherit;
   font-weight: 800;
@@ -740,6 +746,11 @@ svg.face {
 .btn small {
   font-weight: 400;
   opacity: 0.7;
+}
+
+/* The icon sprite in index.html: defines symbols, takes no space. */
+.svg-defs {
+  position: absolute;
 }
 
 .privacy {
