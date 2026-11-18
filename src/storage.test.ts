@@ -25,17 +25,17 @@ describe("storage", () => {
     const s = fakeStorage({
       "poopbird.best.v1": "42",
       "poopBird.graphics": "rtx",
-      "poopbird.name.v1": "old",
-      "poopybird.name.v1": "new",
+      "poopbird.muted.v1": "0",
+      "poopybird.muted.v1": "1",
       "other.key": "x",
     });
     vi.stubGlobal("localStorage", s);
     const storage = await import("./storage");
     expect(storage.loadBest()).toBe(42);
     expect(storage.loadGraphics()).toBe("rtx");
-    expect(s.getItem("poopybird.name.v1")).toBe("new");
+    expect(s.getItem("poopybird.muted.v1")).toBe("1");
     expect(s.getItem("other.key")).toBe("x");
     expect(s.getItem("poopbird.best.v1")).toBeNull();
-    expect(s.getItem("poopbird.name.v1")).toBeNull();
+    expect(s.getItem("poopbird.muted.v1")).toBeNull();
   });
 });

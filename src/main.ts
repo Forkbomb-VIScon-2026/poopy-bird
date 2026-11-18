@@ -31,8 +31,6 @@ import {
   type KnownFace,
   type Tutorial,
 } from "./known-faces";
-import { strainPercent } from "./leaderboard";
-import { showBoards } from "./leaderboard-view";
 import {
   assessPuffCalibration,
   buildInteractivePuffCalibration,
@@ -69,6 +67,7 @@ import {
   robustFeatureStats,
   smoothStrain,
   stepStrain,
+  strainPercent,
   strainedness,
   topFeatureLabels,
   type Calibration,
@@ -76,7 +75,7 @@ import {
 } from "./strain";
 import { claimCoach, coachSay, dockCoach, releaseCoach, type CoachFace, type CoachLine } from "./ui/coach";
 import { $, homeOf, isTouch, replayAnimation, show, stopwatch, wait } from "./ui/dom";
-import { offerRun, showRunPhotos, showRunStats, submitToLeaderboard } from "./ui/gameover";
+import { showRunPhotos, showRunStats } from "./ui/gameover";
 import { hideToast, showToast } from "./ui/toast";
 
 // --- DOM ----------------------------------------------------------------------
@@ -90,7 +89,6 @@ const screens = {
   ready: $("screen-ready"),
   pause: $("screen-pause"),
   gameover: $("screen-gameover"),
-  leaderboard: $("screen-leaderboard"),
 };
 const hud = $("hud");
 const cam = $("cam");
@@ -168,7 +166,7 @@ let keyHeld = false;
 const heldPointers = new Set<number>();
 let best = loadBest();
 let currentSnapshotUrl: string | null = null;
-/** Smoothed `strainedness` of the face (the finest-strain snapshot's and the leaderboard's measure). */
+/** Smoothed `strainedness` of the face (the finest-strain snapshot's measure). */
 let faceStrain = 0;
 /** The player pressed "Skip tutorial": the lesson running ends (lessons reset it when they start). */
 let tutorialSkipped = false;
@@ -1338,19 +1336,7 @@ function onGameOver(): void {
   if (currentSnapshotUrl) $<HTMLImageElement>("go-snapshot-img").src = currentSnapshotUrl;
   $("go-strain").textContent = String(strainPercent(snapshot.peakStrain));
   showRunPhotos(game, renderer.photos, currentSnapshotUrl !== null);
-  // Only runs played with the face count: keyboard and touch runs can't be submitted.
-  offerRun(mode !== "face" ? null : {
-    score,
-    stats: { targets: game.targetsHit, distance: Math.round(game.distance / 50), bestCombo: game.bestCombo },
-    face: currentSnapshotUrl ? { url: currentSnapshotUrl, strain: snapshot.peakStrain } : null,
-  });
   showScreen("gameover");
-}
-
-/** The start screen's 🏆: both boards over the demo. */
-function openLeaderboard(): void {
-  showScreen("leaderboard");
-  void showBoards($("lb-full"), { limit: 20 });
 }
 
 // --- HUD -----------------------------------------------------------------------------------
@@ -1815,12 +1801,6 @@ on("btn-download", () => {
   a.download = name;
   a.click();
 });
-$<HTMLFormElement>("go-lb-form").addEventListener("submit", (e) => {
-  e.preventDefault();
-  void submitToLeaderboard();
-});
-on("btn-leaderboard", openLeaderboard);
-on("btn-lb-back", () => showScreen("start"));
 // Buttons and option toggles shouldn't keep focus, or Space would "click" them while straining
 // (and a focused checkbox counts as typing, which mutes the shortcuts).
 document.addEventListener("click", (e) => {

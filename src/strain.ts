@@ -419,7 +419,7 @@ export function assessCalibration(
 
 // --- Smoothing & hysteresis --------------------------------------------------
 
-// --- Strainedness (the leaderboard's face ranking) ---------------------------
+// --- Strainedness (the finest-strain snapshot's measure) ---------------------
 
 /**
  * Weights of the face's absolute "strainedness": brows down, eyes squeezed,
@@ -448,6 +448,11 @@ export function strainedness(features: FeatureVector): number {
     weightSum += w;
   }
   return weightSum > 0 ? sum / weightSum : 0;
+}
+
+/** `strainedness` as the game shows it ("Constipaticity"), 0..100. */
+export function strainPercent(strain: number): number {
+  return Math.round(strain * 100);
 }
 
 /**

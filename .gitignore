@@ -17,3 +17,6 @@ poopybird-face-*.json.gz
 data/
 # Debug panel perf logs ("Save perf log", written by the dev server)
 perf-logs/
+
+# nix build
+result

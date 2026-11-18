@@ -1,5 +1,5 @@
-// Reaching the collector on the team VM from a dev machine, for data.ts and
-// leaderboard.ts. The public site sits behind the ETH login, so this goes over
+// Reaching the collector on the team VM from a dev machine, for data.ts. The
+// public site sits behind the ETH login, so this goes over
 // SSH: it reads the dev token from the VM and tunnels to the VM's port 8080
 // (Caddy, in front of the login). It needs your SSH key on the VM
 // (ssh-copy-id). POOPYBIRD_VM overrides the SSH target. For another collector

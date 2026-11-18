@@ -7,8 +7,7 @@ Then dive into the harbour, where the bird becomes a pufferfish that you steer
 by **making a pufferfish face**: cheeks puffed, lips pursed.
 
 Everything runs in the browser: face tracking runs locally with MediaPipe, and
-no video, snapshot or score leaves the device unless the player submits a run
-to the [leaderboard](#leaderboard).
+no video, snapshot or score leaves the device.
 
 ## Run it
 
@@ -28,12 +27,12 @@ Other scripts:
 
 | Command | What it does |
 | --- | --- |
-| `npm run build` | Typecheck and build to `dist/` (no debug tooling; this is what CI, Docker and the deploy use) |
+| `npm run build` | Typecheck and build to `dist/` (no debug tooling; this is what CI and the Nix package use) |
 | `npm run build:debug` | Same, with the debug tooling included |
 | `npm run preview` | Serve the build locally |
 | `npm run app:dev` / `app:run` / `app:open` | The [Android app](#android-app) on a phone over USB: showing the dev server / the build; the project in Android Studio |
 | `npm run app:release` | A signed release APK and Play Store bundle (needs the release key, see [Release builds](#release-builds)) |
-| `npm test` | Vitest unit tests (strain and puff math, charge and spike logic, buoyancy, the wedding lifecycle, dataset sessions, collector, leaderboard) |
+| `npm test` | Vitest unit tests (strain and puff math, charge and spike logic, buoyancy, the wedding lifecycle, dataset sessions, collector) |
 | `npm run lint` | ESLint |
 | `npm run typecheck` | Typecheck only (browser code, and the Node code in `tsconfig.node.json`) |
 | `npm run data:pull` / `data:purge` | Copy the face dataset from the team VM into `data/` / delete that copy (see [Face dataset](#face-dataset)) |
@@ -46,16 +45,25 @@ The WASM and the model are served from `public/` at runtime, so the game works
 on bad Wi-Fi once the page has loaded. Both are gitignored: the WASM comes from
 `node_modules`, and the model comes from `fetch-model`.
 
-### Docker
+### Nix package and deployment
 
 ```sh
-docker compose up --build   # serves dist/ with Caddy on http://localhost:8080
+nix build   # the production build, as static files in result/
 ```
 
-The image builds the game and serves it with Caddy on port 8080. For camera
-access on anything other than localhost, put it behind HTTPS. Compose also
-starts the face dataset collector (local credentials `local` /
-`local-dev-token`), which Caddy serves under `/api/`.
+`flake.nix` packages `npm run build` (`nix/poopybird.nix`), with the face
+model fetched by Nix instead of `fetch-model`. The output is plain static
+files: any web server can serve them, over HTTPS (the camera needs it) and with
+`.wasm` as `application/wasm` and `.m4a` as `audio/mp4`. CI builds it on every
+PR (the `nix` job).
+
+After every change to `package-lock.json`, update `npmDepsHash` in
+`nix/poopybird.nix`: set it to `""`, run `nix build`, and copy in the hash it
+reports. The `nix` check fails until then.
+
+The public site, poopybird.com, is this package served by Nicola's own server.
+Merging to `main` doesn't deploy: his infra repo pins a commit of this repo,
+and he moves the pin when he deploys.
 
 ### Android app
 
@@ -70,8 +78,6 @@ and landscape without asking.
 Differences, from `APP` in `src/env.ts` (true when Capacitor's
 `window.Capacitor` is there, also under `app:dev`):
 
-- **On-device only.** No online leaderboard: everything marked `.web-only` is
-  hidden (`body.app`), and nothing goes to `/api`.
 - **Share instead of download** at game over: the WebView can't save files,
   so "📤 Share my face" (`src/app-share.ts`, Capacitor's Filesystem and Share
   plugins) puts the picture in the app's cache and opens Android's share
@@ -195,7 +201,6 @@ use) and a review; with Play App Signing, the key above becomes the upload key.
 | **S** / ⚙ button | Settings (menu and in game; opening it mid-run pauses) |
 | **Enter** | Press the yellow button on any screen (Play, Play again…). Every button takes exactly one key, the one on the keycap badge on its corner |
 | **K** | Menu settings (the gear): play with the keyboard |
-| **L** / 🏆 button | Menu: the [leaderboard](#leaderboard) |
 | **Q** | Pause: back to the menu |
 | **Esc** | Calibration and game over: back to the menu |
 | **C** | Re-run calibration |
@@ -518,101 +523,6 @@ on. The photo and music lists are read from `src/assets/CREDITS.md` and
 up in the game; rows without a source link (the team's own pictures) don't. The
 rest of the screen is in `index.html`.
 
-## Leaderboard
-
-The game-over screen and the start screen's 🏆 (**L**) show the online
-leaderboard: two boards of the runs players chose to submit.
-
-- **🏆 Top scores**, by score.
-- **😣 Most constipated faces**, by the constipaticity of the run's finest-strain face
-  (0–100). Only runs submitted with their face are on it.
-
-Only runs played with the face count. After a keyboard or touch run the
-game-over screen says so instead of offering to submit, and the collector
-turns away submissions that aren't face-mode runs. (At first keyboard runs
-were accepted; the collector deletes any it finds when it starts.)
-
-Nothing is sent until the player presses "Submit to the leaderboard" on the
-game-over screen (with a name, 16 characters at most). The face goes along
-only if they tick "with my face", which starts unticked every run, so the next
-player at the same machine doesn't inherit the choice. A run submitted from
-a browser has a ✕ there to take it off again (the delete key is kept in
-`localStorage`).
-
-**Constipaticity** (`strain.ts` `strainedness`) is the weighted mean of the raw
-`browDown`, `eyeSquint` and ½ × `eyeBlink` blendshapes. These move on a strain
-face for nearly everyone in the face dataset, and the mouth doesn't. It
-ignores the calibration: the calibrated strain tops out at 1 for anyone who
-strains past their own calibration (and a timid calibration would win), so it
-can't rank players against each other. In the dataset, relaxed faces score
-about 20–30 and hard strains 60–75. The score is smoothed like the strain
-signal (`emaAlpha`), and the finest-strain snapshot is the frame where it
-peaked while the game counted the player as straining in the city, so a laugh
-or a blink doesn't count.
-
-**Server.** The collector serves it (`collector/leaderboard.ts`, format and
-ranking in `src/leaderboard.ts`) on the same `poopybird-data` volume as the
-face dataset, so it survives deploys:
-
-| Request | |
-| --- | --- |
-| `GET /api/leaderboard?limit=10` | both boards (at most 100 each) |
-| `POST /api/leaderboard` | a run (`application/json` only); answers its places and a delete key |
-| `GET /api/leaderboard/<id>.jpg` | a shared face |
-| `DELETE /api/leaderboard/<id>` | with `X-Delete-Key`, or the dev token |
-| `GET /api/leaderboard/runs` | every stored run, both pools (dev token) |
-
-Each board keeps its top 500, far more than it lists. A run on neither isn't
-stored, and one pushed off both is deleted, face and all. Submissions are
-limited to 300 an hour per address (Caddy sets the address; a client can't
-fake it).
-
-### Moderation
-
-Scores and strainedness come from the player's browser, so anyone who can open
-the game could post any number, or any picture as their face. The team
-removes bad runs with `npm run leaderboard`, which uses the dev token over SSH
-(like `npm run data:pull`: it needs your SSH key on the VM). Nobody else can
-remove a run, except its submitter from their own browser.
-
-```sh
-npm run leaderboard                                  # what the boards show, the newest runs, and their ids
-npm run leaderboard -- remove <id> [<id>…]           # delete runs (faces included)
-npm run leaderboard -- remove-name "Spam Bot"        # list every run under a name; add --yes to delete them
-npm run leaderboard -- remove-since "2026-10-11 14:30"   # the same for everything since then (a flood)
-npm run leaderboard -- list --all --debug            # every stored run, debug-build runs too
-```
-
-Because the boards keep 500 runs and show at most 100, a flood of fake runs
-doesn't wipe the real ones: removing the fakes brings them back.
-
-### Hardening
-
-What players send ends up in other players' pages, so:
-
-- **Names** are text only (`textContent`, never HTML), at most 16 characters.
-  Control and invisible formatting characters (bidi overrides, zero-width) are
-  dropped, and stacks of combining marks capped at two, so a name can't
-  reorder or spill over the rows around it.
-- **Faces** must be JPEGs (start and end markers, a frame header) of at most
-  120 kB and 400 × 800 px; a small file declaring a huge image could stall
-  every viewer's browser. They're served as `image/jpeg` with `nosniff` and a
-  `Content-Security-Policy` of `default-src 'none'; sandbox`, so even a file
-  crafted to look like HTML runs nothing when opened directly. The page only
-  loads face URLs of the collector's own `/api/leaderboard/<id>.jpg` form.
-- **Submissions** must be `application/json`, which a form on another site
-  can't send, so other sites can't submit through a logged-in visitor's
-  browser. Ids are 16 hex digits, checked before they touch a file path.
-- **Not prevented:** made-up scores, strainedness and pictures (the server
-  can't check what happened in the browser), and offensive names. That's what
-  moderation is for.
-
-Debug builds (`npm run dev:debug`) submit their runs as debug runs and show
-only those, so testing never puts anything on the public boards. With `npm run
-dev`, `/api` goes to the VM through `npm run tunnel` (or `COLLECTOR_URL`); a
-local collector (`npm run collector`, see [Face dataset](#face-dataset)) gives
-an empty board to play with.
-
 ## How the strain detection works
 
 Code: `src/strain.ts` (pure, unit-tested), `src/face-detect.ts` (MediaPipe
@@ -699,6 +609,20 @@ in `src/main.ts`.
 
 A full calibration is also saved in `localStorage`. Press **C** (or click
 "Recalibrate") to calibrate again.
+
+### The finest strain (constipaticity)
+
+The game-over polaroid shows the face at its most strained and its
+**constipaticity** (0–100, `strain.ts` `strainedness`): the weighted mean of
+the raw `browDown`, `eyeSquint` and ½ × `eyeBlink` blendshapes. These move on a
+strain face for nearly everyone in the face dataset, and the mouth doesn't. It
+ignores the calibration: the calibrated strain tops out at 1 for anyone who
+strains past their own calibration (and a timid calibration would win), so it
+couldn't compare players. In the dataset, relaxed faces score about 20–30 and
+hard strains 60–75. The score is smoothed like the strain signal (`emaAlpha`),
+and the snapshot (`src/snapshot.ts`) is the frame where it peaked while the
+game counted the player as straining in the city, so a laugh or a blink
+doesn't count.
 
 ### Who's playing (face recognition)
 
@@ -889,10 +813,9 @@ Calibration has to work for every face, so detection changes are checked
 against a shared collection of labelled recordings from many people and
 devices. It lives on the team VM only and is deleted with it.
 
-**Recording.** The recorder is a separate page of the deployed site:
-`https://24.hackathon.ethz.ch/collect.html?code=<COLLECTION_CODE>` works on
-any device with a camera (the whole site is behind the ETH login, so
-participants need an ETH or SWITCH edu-ID login). The game never links to
+**Recording.** The recorder is a separate page, `collect.html`, in the dev
+server and debug builds only; the public site doesn't have it. During the
+hackathon it ran on the team VM, behind the ETH login. The game never links to
 it; the debug panel's **⏺ Record a dataset session** opens it. It takes a
 participant through about 3 minutes:
 
@@ -947,11 +870,9 @@ DATA_DIR=/tmp/pb npm run collector` with `COLLECTOR_URL=http://127.0.0.1:8787`;
 its collection code is then `local`).
 
 **Storage.** `collector/server.ts` is a small Node server without
-dependencies, in its own container next to the game, with the recordings on
-the `poopybird-data` Docker volume (it survives deploys). Caddy routes `/api/*`
-to it. On the VM, `deploy.yml` generates its two secrets once into
-`~/poopybird-collector.env` (`ssh viscon@24-direct.viscon-hackathon.ch cat
-poopybird-collector.env`): `COLLECTION_CODE`, the upload password that goes
+dependencies that stores the recordings under `DATA_DIR`. It isn't deployed
+anywhere now (it ran next to the game on the hackathon VM); run it locally
+with `npm run collector`. It takes two secrets: `COLLECTION_CODE`, the upload password that goes
 into collect links (uploads only), and `DEV_TOKEN` for the team (list,
 download, review, delete). Every upload is validated, quality-checked (face
 coverage, detection rate, whether the strain moved brows and eyes) and added
@@ -1002,11 +923,7 @@ when a change is ready to merge. Older debug-recorder clips
   else.
 - The "finest strain" snapshot is taken in every face-mode run. It's a 200 px
   JPEG of your face at its most strained, kept in memory and shown on the
-  game-over screen. It leaves the device only if you submit the run to the
-  [leaderboard](#leaderboard) with "with my face" ticked; then everyone who
-  can open the game sees it until you remove it (✕) or it drops off the
-  boards. Without the face, a submitted run is a name, a score and a few
-  stats.
+  game-over screen. It leaves the device only if you download or share it.
 - The paparazzi's photos show your face in face mode, and the bird with the
   keyboard. So does the bird in the wedding photos. They stay in memory for
   the current run and are never stored.
@@ -1017,8 +934,7 @@ when a change is ready to merge. Older debug-recorder clips
   See [Who's playing](#whos-playing-face-recognition).
 - All storage access is wrapped in try/catch, so the game works without
   storage.
-- Playing sends nothing anywhere unless you submit a run to the
-  leaderboard. Apart from that, only the separate dataset recorder
+- Playing sends nothing anywhere. Only the separate dataset recorder
   (`collect.html`) uploads, after explicit consent, and it records expression
   scores and face-mesh points, never video or images. See
   [Face dataset](#face-dataset).
@@ -1055,29 +971,25 @@ src/
   snapshot.ts   face crops: peak-strain snapshot, paparazzi and wedding photos
   app-share.ts  the Android app's share sheet (instead of downloads)
   credits.ts    the credits screen's lists, read from the CREDITS.md files   credits.test.ts
-  storage.ts    safe localStorage, best score, your leaderboard runs
-  leaderboard.ts       leaderboard format, checks, ranking (shared with the collector)
-  leaderboard-view.ts  the boards in the page: fetch, submit, remove, draw
+  storage.ts    safe localStorage, best score, settings
   main.ts       screens, input, loops, calibration flow, lessons
   ui/           dom helpers, toast, coach (tutorial banner), game-over screen, credits screen
   random.ts     pick, rnd (seeded)
   session.ts    dataset sessions: scripts, recorder, format, checks   session.test.ts
   collect.ts    the dataset recorder page (collect.html)
+flake.nix, nix/  the Nix package of the production build (README "Nix package and deployment")
 android/        the Android app's project (Capacitor; README "Android app")
 capacitor.config.ts  the app's id and name, and its web build (dist/)
 collector/
   server.ts     dataset upload/download server (Node, no deps)       server.test.ts
-  leaderboard.ts  the online leaderboard's routes and storage        leaderboard.test.ts
-  http.ts       helpers shared by both
-  Dockerfile
+  http.ts       its HTTP and file helpers
 scripts/
   copy-wasm.mjs    node_modules → public/mediapipe/wasm, public/faceid
   app-dev.mjs      app:dev: the dev server, and the Android app showing it
   app-icons.mjs    draws the Android app's icons and splash screens
   fetch-model.mjs  downloads face_landmarker.task
   data.ts          data:pull / data:purge
-  leaderboard.ts   leaderboard moderation: list and remove runs
-  vm.ts            dev token + SSH tunnel to the collector (data.ts, leaderboard.ts)
+  vm.ts            dev token + SSH tunnel to the collector (data.ts)
   run-ts.mjs       runs a TS script through Vite (used by eval)
   eval/            detection scoreboard: load, strain, puff, variants
 ```

@@ -165,32 +165,6 @@ export function saveBest(score: number): void {
   storageSet(BEST_KEY, String(Math.floor(score)));
 }
 
-// The old Hall of Fame (top 5 on this device, with face snapshots) gave way to
-// the online leaderboard. Its faces shouldn't linger unseen in storage.
+// The old Hall of Fame (top 5 on this device, with face snapshots) is gone.
+// Its faces shouldn't linger unseen in storage.
 storageRemove("poopybird.halloffame.v1");
-
-// --- Leaderboard: runs this browser submitted ------------------------------------
-
-const LEADERBOARD_RUNS_KEY = "poopybird.leaderboardRuns.v1";
-
-/** Run id → its delete key, for the runs submitted from this browser (they get a remove button). */
-export function loadLeaderboardKeys(): Record<string, string> {
-  try {
-    const parsed: unknown = JSON.parse(storageGet(LEADERBOARD_RUNS_KEY) ?? "{}");
-    if (typeof parsed !== "object" || parsed === null || Array.isArray(parsed)) return {};
-    return Object.fromEntries(Object.entries(parsed).filter((e): e is [string, string] => typeof e[1] === "string"));
-  } catch {
-    return {};
-  }
-}
-
-export function saveLeaderboardKey(id: string, deleteKey: string): void {
-  storageSet(LEADERBOARD_RUNS_KEY, JSON.stringify({ ...loadLeaderboardKeys(), [id]: deleteKey }));
-}
-
-export function forgetLeaderboardKey(id: string): void {
-  const keys = loadLeaderboardKeys();
-  delete keys[id];
-  storageSet(LEADERBOARD_RUNS_KEY, JSON.stringify(keys));
-}
-

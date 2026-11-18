@@ -1,8 +1,8 @@
 name: Android
 
 # Builds the Android app's APKs (README "Android app") and keeps them as
-# artifacts for a week. A workflow of its own, not a job in CI: deploy.yml waits
-# for CI, and the web version must never wait for the app.
+# artifacts for a week. A workflow of its own, not a job in CI, so the web
+# version's checks never wait for the app.
 on:
   push:
     branches: [main]

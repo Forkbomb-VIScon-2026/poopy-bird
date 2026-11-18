@@ -1,8 +1,7 @@
 // "Finest strain" snapshot: keeps a cropped copy of the video frame where the
-// face looked most strained during the run (strain.ts `strainedness`, the
-// leaderboard's face ranking). The crop lives in an in-memory canvas and is
-// only encoded to JPEG at game over. It leaves the device only if the player
-// submits the run to the leaderboard with their face.
+// face looked most strained during the run (strain.ts `strainedness`). The
+// crop lives in an in-memory canvas and is only encoded to JPEG at game over.
+// It leaves the device only if the player downloads or shares it.
 //
 // captureFace() uses the same crop for the paparazzi's in-game photos, which
 // only ever live in memory for the current run.

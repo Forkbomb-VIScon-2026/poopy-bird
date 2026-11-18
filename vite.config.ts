@@ -4,7 +4,7 @@ import { basename, join } from "node:path";
 import type { Plugin } from "vite";
 import { defineConfig } from "vitest/config";
 
-/** The game's commit, stored with every face dataset session (APP_COMMIT in Docker builds, which have no .git). */
+/** The game's commit, stored with every face dataset session (APP_COMMIT in Nix builds, which have no .git). */
 function commit(): string {
   if (process.env.APP_COMMIT) return process.env.APP_COMMIT.slice(0, 7);
   try {
@@ -49,7 +49,7 @@ function perfLog(): Plugin {
   };
 }
 
-export default defineConfig({
+export default defineConfig(({ mode }) => ({
   plugins: [perfLog()],
   define: { __APP_COMMIT__: JSON.stringify(commit()) },
   server: {
@@ -65,10 +65,10 @@ export default defineConfig({
   build: {
     target: "es2022",
     chunkSizeWarningLimit: 1500,
-    // Two pages: the game, and the face dataset recorder at /collect.html.
-    rolldownOptions: { input: { main: "index.html", collect: "collect.html" } },
+    // The face dataset recorder (/collect.html) is a dev tool: in debug builds, not the public one.
+    rolldownOptions: { input: { main: "index.html", ...(mode === "debug" && { collect: "collect.html" }) } },
   },
   // The face worker (face-worker.ts) is a module worker: MediaPipe loads its WASM loader with import() there.
   worker: { format: "es" },
   test: { include: ["src/**/*.test.ts", "collector/**/*.test.ts"] },
-});
+}));
