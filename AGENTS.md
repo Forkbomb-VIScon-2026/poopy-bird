@@ -34,7 +34,7 @@ npm run fetch-model  # public/mediapipe/face_landmarker.task
 ```
 
 Instead of downloading, you can copy the model from another checkout that
-already has it (e.g. `cp ../../../repos/poop-bird/public/mediapipe/face_landmarker.task
+already has it (e.g. `cp ../../../repos/poopy-bird/public/mediapipe/face_landmarker.task
 public/mediapipe/`). Without the model, Vite serves `index.html` in its place
 and face tracking fails with `Unable to open zip archive ... StartGraph failed`.
 
