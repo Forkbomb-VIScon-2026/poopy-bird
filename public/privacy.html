@@ -4,16 +4,27 @@
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <title>Privacy · Poopy Bird</title>
+    <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'>
     <link rel="stylesheet" href="/privacy.css" />
   </head>
   <body>
     <main>
+      <p class="brand"><a href="/">Poopy <span>Bird</span></a></p>
       <h1>Privacy</h1>
-      <p class="lead">
-        Poopy Bird watches your face to fly the bird, and it does all of that on
-        your device. Nothing about you is sent to us or to anyone else.
-      </p>
 
+      <section class="card promise">
+        <span class="promise-icon" aria-hidden="true">🔒</span>
+        <div>
+          <p class="promise-title">Your face never leaves this device.</p>
+          <p>
+            Poopy Bird watches your face to fly the bird, and it does all of that
+            right here, in your browser. Nothing about you is sent to us or to
+            anyone else.
+          </p>
+        </div>
+      </section>
+
+      <section class="card">
       <h2>Your camera</h2>
       <p>
         The video from your camera is analysed in your browser (or in the
@@ -62,7 +73,10 @@
         <a href="mailto:contact@nicolabruhin.com">contact@nicolabruhin.com</a>.
       </p>
 
-      <p class="updated">Last updated 18 November 2026 · <a href="/">Back to the game</a></p>
+      <p class="updated">Last updated 18 November 2026</p>
+      </section>
+
+      <p class="back"><a class="btn" href="/">← Back to the game</a></p>
     </main>
   </body>
 </html>
