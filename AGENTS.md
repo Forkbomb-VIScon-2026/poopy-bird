@@ -10,13 +10,18 @@ gh pr create --fill
 gh pr merge --auto --squash
 ```
 
-GitHub merges the PR once the required checks (`check` and `docker` from
+GitHub merges the PR once the required checks (`check` and `nix` from
 `ci.yml`) pass. If a check fails, the PR stays open: fix it on the branch.
 
-Every merge to `main` deploys: once CI passes on `main`, `deploy.yml` ships the
-build to the live VM. Green checks are all that stands between a PR and
-production, so run `npm run lint`, `npm test` and `npm run build` locally first,
-and actually try changes that the checks can't see (gameplay, camera, audio).
+Merging doesn't deploy. The public site (poopybird.com) is the Nix package
+(`nix build`), deployed by Nicola from his infra repo, which pins a commit of
+this one. Still run `npm run lint`, `npm test` and `npm run build` locally
+first, and actually try changes that the checks can't see (gameplay, camera,
+audio).
+
+After any change to `package-lock.json`, update `npmDepsHash` in
+`nix/poopybird.nix` (set it to `""`, run `nix build`, copy in the reported
+hash), or the `nix` check fails.
 
 ## Set up a new checkout
 
@@ -64,7 +69,7 @@ npm install            # postinstall copies MediaPipe WASM into public/mediapipe
 npm run fetch-model    # one-time: downloads face_landmarker.task into public/mediapipe/
 npm run dev            # http://localhost:5173 (host: true; webcam needs localhost or HTTPS)
 npm run dev:debug      # same, with the debug panel, tuning overrides and window.poopyBird
-npm run build          # typecheck && vite build → dist/ (production: no debug tooling; game + collect.html)
+npm run build          # typecheck && vite build → dist/ (production: no debug tooling; the game only)
 npm run build:debug    # build with debug tooling
 npm test               # vitest run (src/**/*.test.ts, collector/**/*.test.ts)
 npx vitest run src/strain.test.ts      # single file
@@ -74,7 +79,7 @@ npm run typecheck      # tsconfig.json (browser) + tsconfig.node.json (collector
 npm run data:pull      # face dataset from the VM into data/ (over SSH; see README "Face dataset")
 npm run tunnel         # SSH tunnel to the VM, so the local recorder can upload (the public site needs the ETH login)
 npm run eval           # detection scoreboard over data/ (variants in scripts/eval/variants.ts)
-docker compose up --build              # Caddy serving dist/ on :8080, plus the dataset collector
+nix build              # the production build as the Nix package, in result/ (what poopybird.com serves)
 npm run app:dev        # the Android app on a USB phone, showing the debug dev server (needs JDK 21 + Android SDK, README "Android app")
 npm run app:run        # the Android app with the production build inside (debug APK, installed over USB)
 npm run app:release    # signed release APK + AAB (needs android/keystore.properties; README "Release builds")
@@ -113,8 +118,8 @@ Conventions that span files:
 Finest strain (README "The finest strain"): the game-over polaroid is the frame where `strain.ts` `strainedness` peaked (players see it as "constipaticity"; raw blendshapes, calibration-free, so it means the same for every player; the snapshot is offered only while `strain.active`). It stays on the device unless the player downloads or shares it.
 
 Face dataset (README "Face dataset" has the full picture):
-- `collect.html` + `src/collect.ts` record consented, labelled sessions (game calibration + "relax again", strain script, then after a break each: puff script, pufferfish face = puffing the cheeks while pursing the lips) and upload them to `/api/recordings`. It is the second page of every build (`vite.config.ts` `rolldownOptions.input`), so it is live at `/collect.html`; the game never links to it. In dev, `/api` is proxied to `npm run tunnel` (127.0.0.1:8788) or `COLLECTOR_URL`. The public site `https://24.hackathon.ethz.ch` is behind the ETH (VSETH) login, so scripts reach the VM over SSH (`viscon@24-direct.viscon-hackathon.ch`), never through the public URL. Bump `CONSENT_VERSION` in `collect.ts` when the consent text in `collect.html` changes.
+- `collect.html` + `src/collect.ts` record consented, labelled sessions (game calibration + "relax again", strain script, then after a break each: puff script, pufferfish face = puffing the cheeks while pursing the lips) and upload them to `/api/recordings`. It is a second page in the dev server and debug builds only (`vite.config.ts` `rolldownOptions.input`), never in the public build; the game never links to it. In dev, `/api` is proxied to `npm run tunnel` (127.0.0.1:8788) or `COLLECTOR_URL`. The public site `https://24.hackathon.ethz.ch` is behind the ETH (VSETH) login, so scripts reach the VM over SSH (`viscon@24-direct.viscon-hackathon.ch`), never through the public URL. Bump `CONSENT_VERSION` in `collect.ts` when the consent text in `collect.html` changes.
 - `src/session.ts` owns the scripts, the session format (schema 2: columns per frame, landmarks as Int16 deltas), validation, quality flags and index rows. The collector runs it in plain Node with types stripped, so it must have **no runtime imports and only erasable TypeScript** (no parameter properties, enums or namespaces); `tsconfig.node.json` (`erasableSyntaxOnly`) checks this for the collector, `scripts/**/*.ts` and `session.ts`.
-- `collector/server.ts` (own container, `collector/Dockerfile`, no npm install) stores sessions on the `poopybird-data` volume. `deploy.yml` starts it on the `poopybird` network next to the game and creates its `COLLECTION_CODE` / `DEV_TOKEN` once in `~/poopybird-collector.env` on the VM. Caddy proxies `/api/*` to `collector:8787`.
-- Recordings are personal data: never commit them (`data/`, `poopybird-face-*` are gitignored and dockerignored), and they live only on the VM and in devs' `data/` (deleted with `npm run data:purge` when the VM goes).
+- `collector/server.ts` (plain Node, no npm install) stores sessions under `DATA_DIR`. It ran next to the game on the hackathon VM and isn't deployed anywhere now: run it locally (`npm run collector`).
+- Recordings are personal data: never commit them (`data/`, `poopybird-face-*` are gitignored), and they live only on the VM and in devs' `data/` (deleted with `npm run data:purge` when the VM goes).
 - `scripts/eval/` scores detection variants (`variants.ts`, first entry = the game today) against `data/`. It runs through `scripts/run-ts.mjs` (Vite's module runner), so it can import `src/` modules as they are; `scripts/data.ts` runs in plain Node and must not import `src/`.

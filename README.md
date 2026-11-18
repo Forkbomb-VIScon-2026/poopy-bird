@@ -27,7 +27,7 @@ Other scripts:
 
 | Command | What it does |
 | --- | --- |
-| `npm run build` | Typecheck and build to `dist/` (no debug tooling; this is what CI, Docker and the deploy use) |
+| `npm run build` | Typecheck and build to `dist/` (no debug tooling; this is what CI and the Nix package use) |
 | `npm run build:debug` | Same, with the debug tooling included |
 | `npm run preview` | Serve the build locally |
 | `npm run app:dev` / `app:run` / `app:open` | The [Android app](#android-app) on a phone over USB: showing the dev server / the build; the project in Android Studio |
@@ -45,16 +45,25 @@ The WASM and the model are served from `public/` at runtime, so the game works
 on bad Wi-Fi once the page has loaded. Both are gitignored: the WASM comes from
 `node_modules`, and the model comes from `fetch-model`.
 
-### Docker
+### Nix package and deployment
 
 ```sh
-docker compose up --build   # serves dist/ with Caddy on http://localhost:8080
+nix build   # the production build, as static files in result/
 ```
 
-The image builds the game and serves it with Caddy on port 8080. For camera
-access on anything other than localhost, put it behind HTTPS. Compose also
-starts the face dataset collector (local credentials `local` /
-`local-dev-token`), which Caddy serves under `/api/`.
+`flake.nix` packages `npm run build` (`nix/poopybird.nix`), with the face
+model fetched by Nix instead of `fetch-model`. The output is plain static
+files: any web server can serve them, over HTTPS (the camera needs it) and with
+`.wasm` as `application/wasm` and `.m4a` as `audio/mp4`. CI builds it on every
+PR (the `nix` job).
+
+After every change to `package-lock.json`, update `npmDepsHash` in
+`nix/poopybird.nix`: set it to `""`, run `nix build`, and copy in the hash it
+reports. The `nix` check fails until then.
+
+The public site, poopybird.com, is this package served by Nicola's own server.
+Merging to `main` doesn't deploy: his infra repo pins a commit of this repo,
+and he moves the pin when he deploys.
 
 ### Android app
 
@@ -804,10 +813,9 @@ Calibration has to work for every face, so detection changes are checked
 against a shared collection of labelled recordings from many people and
 devices. It lives on the team VM only and is deleted with it.
 
-**Recording.** The recorder is a separate page of the deployed site:
-`https://24.hackathon.ethz.ch/collect.html?code=<COLLECTION_CODE>` works on
-any device with a camera (the whole site is behind the ETH login, so
-participants need an ETH or SWITCH edu-ID login). The game never links to
+**Recording.** The recorder is a separate page, `collect.html`, in the dev
+server and debug builds only; the public site doesn't have it. During the
+hackathon it ran on the team VM, behind the ETH login. The game never links to
 it; the debug panel's **⏺ Record a dataset session** opens it. It takes a
 participant through about 3 minutes:
 
@@ -862,11 +870,9 @@ DATA_DIR=/tmp/pb npm run collector` with `COLLECTOR_URL=http://127.0.0.1:8787`;
 its collection code is then `local`).
 
 **Storage.** `collector/server.ts` is a small Node server without
-dependencies, in its own container next to the game, with the recordings on
-the `poopybird-data` Docker volume (it survives deploys). Caddy routes `/api/*`
-to it. On the VM, `deploy.yml` generates its two secrets once into
-`~/poopybird-collector.env` (`ssh viscon@24-direct.viscon-hackathon.ch cat
-poopybird-collector.env`): `COLLECTION_CODE`, the upload password that goes
+dependencies that stores the recordings under `DATA_DIR`. It isn't deployed
+anywhere now (it ran next to the game on the hackathon VM); run it locally
+with `npm run collector`. It takes two secrets: `COLLECTION_CODE`, the upload password that goes
 into collect links (uploads only), and `DEV_TOKEN` for the team (list,
 download, review, delete). Every upload is validated, quality-checked (face
 coverage, detection rate, whether the strain moved brows and eyes) and added
@@ -971,12 +977,12 @@ src/
   random.ts     pick, rnd (seeded)
   session.ts    dataset sessions: scripts, recorder, format, checks   session.test.ts
   collect.ts    the dataset recorder page (collect.html)
+flake.nix, nix/  the Nix package of the production build (README "Nix package and deployment")
 android/        the Android app's project (Capacitor; README "Android app")
 capacitor.config.ts  the app's id and name, and its web build (dist/)
 collector/
   server.ts     dataset upload/download server (Node, no deps)       server.test.ts
   http.ts       its HTTP and file helpers
-  Dockerfile
 scripts/
   copy-wasm.mjs    node_modules → public/mediapipe/wasm, public/faceid
   app-dev.mjs      app:dev: the dev server, and the Android app showing it
