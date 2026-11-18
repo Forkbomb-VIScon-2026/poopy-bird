@@ -1,26 +1,9 @@
-// The game-over screen: the run's stats, the run in pictures, and the
-// leaderboard form (opt-in; only face-mode runs can be submitted).
+// The game-over screen: the run's stats and the run in pictures.
 
-import { APP } from "../env";
 import type { Game } from "../game";
-import { BOARD_KEEP, type RunStats } from "../leaderboard";
-import { showBoards, submitRun } from "../leaderboard-view";
 import { pick } from "../random";
 import { drawFrontPage, drawTrophyPrint, drawWeddingPrint, newCanvas, type Photo } from "../render";
-import { storageGet, storageSet } from "../storage";
 import { $, show } from "./dom";
-
-/** A run as it would go to the leaderboard. */
-export interface Run {
-  score: number;
-  stats: RunStats;
-  face: { url: string; strain: number } | null;
-}
-
-/** The run on the game-over screen's leaderboard form. null once submitted (or for a keyboard run). */
-let lastRun: Run | null = null;
-
-const NAME_KEY = "poopybird.name.v1";
 
 /** The title and the stats of the run that just ended. */
 export function showRunStats(game: Game, best: number, newBest: boolean): void {
@@ -91,64 +74,4 @@ export function showRunPhotos(game: Game, photos: ReadonlyMap<number, Photo>, ha
   }
   show(strip, prints.length > 0 || hasSnapshot);
   strip.scrollLeft = 0;
-}
-
-/** Sets up the leaderboard form for `run` (null: a keyboard or touch run, which can't be submitted). */
-export function offerRun(run: Run | null): void {
-  // The app has no online leaderboard: its form and boards are .web-only.
-  if (APP) return;
-  lastRun = run;
-  show($("go-lb-form"), run !== null && (run.score > 0 || run.face !== null));
-  show($("go-lb-face-opt"), run?.face != null);
-  // Sharing the face is a fresh choice every run (the next player at this machine may not want to).
-  $<HTMLInputElement>("go-lb-face").checked = false;
-  $<HTMLButtonElement>("btn-lb-submit").disabled = false;
-  $<HTMLInputElement>("go-name").value = storageGet(NAME_KEY) ?? "";
-  const status = $("go-lb-status");
-  status.classList.remove("error");
-  status.textContent = "Only runs played with your face count for the leaderboard. 😣";
-  show(status, run === null);
-  void showBoards($("go-lb"));
-}
-
-/** Sends the game-over screen's run to the online leaderboard (only when the player presses Submit). */
-export async function submitToLeaderboard(): Promise<void> {
-  const run = lastRun;
-  if (!run) return;
-  const name = ($<HTMLInputElement>("go-name").value.trim() || "Anonymous Pooper").slice(0, 16);
-  storageSet(NAME_KEY, name);
-  const withFace = run.face !== null && $<HTMLInputElement>("go-lb-face").checked;
-  const button = $<HTMLButtonElement>("btn-lb-submit");
-  const status = $("go-lb-status");
-  button.disabled = true;
-  status.textContent = "Submitting…";
-  status.classList.remove("error");
-  show(status, true);
-  try {
-    const result = await submitRun({
-      name,
-      score: run.score,
-      mode: "face",
-      stats: run.stats,
-      ...(withFace && run.face
-        ? { face: { jpeg: run.face.url.slice(run.face.url.indexOf(",") + 1), strain: run.face.strain } }
-        : {}),
-    });
-    if (lastRun !== run) return;
-    lastRun = null;
-    show($("go-lb-form"), false);
-    const places = [
-      result.rank.score !== null ? `#${result.rank.score} on scores` : "",
-      result.rank.face !== null ? `#${result.rank.face} on faces` : "",
-    ].filter(Boolean);
-    status.textContent = places.length
-      ? `You're ${places.join(" and ")}! 🎉`
-      : `Not in the top ${BOARD_KEEP} this time. Strain harder! 💩`;
-    void showBoards($("go-lb"), { highlight: result.id });
-  } catch (err) {
-    if (lastRun !== run) return;
-    button.disabled = false;
-    status.textContent = `Couldn't submit: ${err instanceof Error ? err.message : "no connection"}.`;
-    status.classList.add("error");
-  }
 }

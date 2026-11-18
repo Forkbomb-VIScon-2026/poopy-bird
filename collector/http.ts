@@ -1,4 +1,4 @@
-// Helpers shared by the collector's routes (server.ts, leaderboard.ts).
+// Helpers for the collector's routes (server.ts).
 
 import { createHash, randomBytes, timingSafeEqual } from "node:crypto";
 import { access, readdir, rename, writeFile } from "node:fs/promises";
@@ -42,25 +42,6 @@ export function readBody(req: IncomingMessage, limit: number): Promise<Buffer> {
 /** The client's address (Caddy sets X-Forwarded-For). */
 export function clientIp(req: IncomingMessage): string {
   return String(req.headers["x-forwarded-for"] ?? req.socket.remoteAddress ?? "").split(",")[0].trim();
-}
-
-/**
- * At most `perHour` events per key in any hour. Behind the hackathon proxy
- * and Caddy, everyone may share one address, so per address is close to a
- * total limit.
- */
-export function rateLimiter(perHour: number, now: () => number): (key: string) => boolean {
-  const events = new Map<string, number[]>();
-  return (key) => {
-    const recent = (events.get(key) ?? []).filter((t) => now() - t < 3600_000);
-    if (recent.length >= perHour) {
-      events.set(key, recent);
-      return false;
-    }
-    recent.push(now());
-    events.set(key, recent);
-    return true;
-  };
 }
 
 /** Write to a temp file, then rename, so a crash never leaves half a file. */

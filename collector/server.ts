@@ -9,11 +9,9 @@
 //   DELETE /api/recordings/<p>/<s>          dev token, or the X-Delete-Key returned by the upload
 //   DELETE /api/recordings/<p>              all sessions of a participant (dev token)
 //   GET    /api/health
-//   …      /api/leaderboard…                    the game's online leaderboard (leaderboard.ts)
 //
 // Data layout: <DATA_DIR>/sessions/<participant>/<session>.json.gz plus
-// <session>.meta.json (index row and the delete key's hash), and
-// <DATA_DIR>/leaderboard/ (leaderboard.ts).
+// <session>.meta.json (index row and the delete key's hash).
 
 import { randomBytes } from "node:crypto";
 import { mkdir, readFile, rm } from "node:fs/promises";
@@ -23,7 +21,6 @@ import { fileURLToPath } from "node:url";
 import { gunzipSync } from "node:zlib";
 import { PARTICIPANT_RE, SESSION_RE, indexRow, validateSession, type IndexRow, type Session } from "../src/session.ts";
 import { HttpError, clientIp, exists, readBody, readdirSafe, safeEqual, send, sha256, writeAtomic } from "./http.ts";
-import { createLeaderboard } from "./leaderboard.ts";
 
 export interface CollectorOptions {
   dataDir: string;
@@ -33,7 +30,6 @@ export interface CollectorOptions {
   devToken: string;
   maxUploadBytes?: number;
   uploadsPerHour?: number;
-  leaderboardSubmitsPerHour?: number;
   now?: () => number;
 }
 
@@ -62,9 +58,6 @@ export function createCollector(opts: CollectorOptions): Server {
   const paths = (p: string, s: string) => ({
     data: join(sessionsDir, p, `${s}.json.gz`),
     meta: join(sessionsDir, p, `${s}.meta.json`),
-  });
-  const leaderboard = createLeaderboard({
-    dataDir: opts.dataDir, isDev, submitsPerHour: opts.leaderboardSubmitsPerHour, now,
   });
 
   async function upload(req: IncomingMessage, res: ServerResponse): Promise<void> {
@@ -124,7 +117,6 @@ export function createCollector(opts: CollectorOptions): Server {
     const parts = url.pathname.split("/").filter(Boolean);
     if (parts[0] !== "api") throw new HttpError(404, "Not found.");
     if (parts[1] === "health" && parts.length === 2 && req.method === "GET") return send(res, 200, { ok: true });
-    if (parts[1] === "leaderboard") return leaderboard(req, res, parts);
     if (parts[1] !== "recordings" || parts.length > 4) throw new HttpError(404, "Not found.");
     const [p, s] = [parts[2], parts[3]];
     if (p !== undefined && !PARTICIPANT_RE.test(p)) throw new HttpError(404, "No such participant.");

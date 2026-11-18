@@ -58,7 +58,7 @@ jobs:
           cp android/app/build/outputs/apk/release/app-release.apk "$apk"
           gh release create "app-v$version-$GITHUB_RUN_NUMBER" "$apk" --draft --target "$GITHUB_SHA" \
             --title "Poopy Bird for Android $version (build $GITHUB_RUN_NUMBER)" \
-            --notes "Install: open this page on the phone, download the APK and allow installing it. Face tracking stays on the phone, and the app has no online leaderboard. Photo credits: https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/src/assets/CREDITS.md"
+            --notes "Install: open this page on the phone, download the APK and allow installing it. Face tracking stays on the phone. Photo credits: https://github.com/$GITHUB_REPOSITORY/blob/$GITHUB_SHA/src/assets/CREDITS.md"
       - uses: actions/upload-artifact@v4
         with:
           name: poopy-bird-release-aab
