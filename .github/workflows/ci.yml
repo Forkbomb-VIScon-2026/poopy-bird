@@ -25,7 +25,7 @@ jobs:
       # The debug variant must keep compiling too, but is never deployed
       - run: npm run build:debug
 
-  # The Nix package, which is what poopybird.com serves. Fails when
+  # The Nix package, which is what poopy-bird.com serves. Fails when
   # npmDepsHash in nix/poopybird.nix is stale (README "Nix package and deployment").
   nix:
     runs-on: ubuntu-latest

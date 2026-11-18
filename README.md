@@ -61,7 +61,7 @@ After every change to `package-lock.json`, update `npmDepsHash` in
 `nix/poopybird.nix`: set it to `""`, run `nix build`, and copy in the hash it
 reports. The `nix` check fails until then.
 
-The public site, poopybird.com, is this package served by Nicola's own server.
+The public site, poopy-bird.com, is this package served by Nicola's own server.
 Merging to `main` doesn't deploy: his infra repo pins a commit of this repo,
 and he moves the pin when he deploys.
 
