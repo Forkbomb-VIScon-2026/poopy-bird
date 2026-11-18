@@ -90,7 +90,7 @@ export default defineConfig(({ mode }) => ({
     target: "es2022",
     chunkSizeWarningLimit: 1500,
     // The face dataset recorder (/collect.html) is a dev tool: in debug builds, not the public one.
-    rolldownOptions: { input: { main: "index.html", ...(mode === "debug" && { collect: "collect.html" }) } },
+    rolldownOptions: { input: { main: "index.html", privacy: "privacy.html", ...(mode === "debug" && { collect: "collect.html" }) } },
   },
   // The face worker (face-worker.ts) is a module worker: MediaPipe loads its WASM loader with import() there.
   worker: { format: "es", plugins: () => [noMediapipeTelemetry()] },

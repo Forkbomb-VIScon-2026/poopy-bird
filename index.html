@@ -193,6 +193,19 @@
         </div>
       </div>
 
+      <!-- The first Play, before the browser asks for the camera: what happens to your face (main.ts). -->
+      <section id="screen-camera" class="screen camera-notice hidden" aria-label="Your camera">
+        <div class="card">
+          <h2>🔒 Your face stays here</h2>
+          <p>Poopy Bird flies on your face: the camera watches how hard you strain.</p>
+          <p class="camera-notice-promise">It all happens on this device. No video or photo of you is ever uploaded.</p>
+          <div class="buttons">
+            <button id="btn-camera-ok" class="btn primary" data-default>OK, let's play</button>
+            <a class="btn privacy-link" href="privacy.html" target="_blank" rel="noopener">Privacy details</a>
+          </div>
+        </div>
+      </section>
+
       <!-- Start screen: no card, just the title over the city with the bird hovering. -->
       <section id="screen-start" class="screen start">
         <button id="btn-settings" class="hud-btn settings-gear" data-keys="S" aria-label="Settings" title="Settings (S)"><svg class="gear-icon" aria-hidden="true"><use href="#icon-gear" /></svg></button>
@@ -202,8 +215,6 @@
           <div class="start-play">
             <button id="btn-face" class="btn primary big" data-default>😣 Play</button>
           </div>
-          <!-- Before anyone turns the camera on: the one promise that matters, linking the details. -->
-          <a class="face-promise-badge privacy-link" href="privacy.html" target="_blank" rel="noopener">🔒 Your face never leaves this device</a>
         </div>
       </section>
 
@@ -212,15 +223,6 @@
         <div class="card">
           <h2 id="loading-title">Warming up…</h2>
           <p id="loading-text">Loading the face tracker and asking for your camera.</p>
-          <!-- Shown while the browser asks for the camera, when players wonder what happens to their face. -->
-          <div class="face-promise">
-            <span class="face-promise-icon" aria-hidden="true">🔒</span>
-            <div>
-              <b>Your face never leaves this device.</b>
-              <p>The camera is read right here, in your browser. No video and no photo is uploaded: there is no server that could receive one.</p>
-              <a class="privacy-link" href="privacy.html" target="_blank" rel="noopener">How we keep it that way</a>
-            </div>
-          </div>
           <div id="loading-spinner" class="spinner"></div>
           <div id="loading-error" class="hidden">
             <p class="error" id="loading-error-text"></p>

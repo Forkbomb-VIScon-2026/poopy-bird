@@ -43,12 +43,14 @@ import {
   PUFF_CALIBRATION_KEY,
   loadBest,
   loadCalibration,
+  loadCameraNoticeSeen,
   loadGraphics,
   loadKnownFacesJson,
   loadMuted,
   loadMusic,
   saveBest,
   saveCalibration,
+  saveCameraNoticeSeen,
   saveGraphics,
   saveKnownFacesJson,
   saveMusic,
@@ -1589,6 +1591,11 @@ function focusHandlesEnter(): boolean {
 window.addEventListener("keydown", (e) => {
   if (isTyping(e)) return;
   // Esc closes the settings (or the credits over them) too. Done takes Enter, and a screen's yellow button takes no other key (keyhints.ts).
+  if (e.key === "Escape" && !cameraNotice.classList.contains("hidden")) {
+    e.preventDefault();
+    show(cameraNotice, false);
+    return;
+  }
   if (e.key === "Escape" && !settingsPanel.classList.contains("hidden")) {
     e.preventDefault();
     const close = creditsPanel.classList.contains("hidden") ? "btn-settings-done" : "btn-credits-back";
@@ -1748,7 +1755,22 @@ musicSwitch.addEventListener("change", () => {
   saveMusic(musicSwitch.checked);
 });
 on("btn-forget-faces", forgetFaces);
-onPlay("btn-face", () => void startFaceMode());
+// The first Play explains the camera before the browser asks for it.
+const cameraNotice = $("screen-camera");
+on("btn-face", () => {
+  if (loadCameraNoticeSeen()) {
+    goLandscape();
+    void startFaceMode();
+    return;
+  }
+  show(cameraNotice, true);
+  armButtonKeys(300);
+});
+onPlay("btn-camera-ok", () => {
+  saveCameraNoticeSeen();
+  show(cameraNotice, false);
+  void startFaceMode();
+});
 onPlay("btn-keyboard", () => {
   show(settingsPanel, false);
   startKeyboardMode();

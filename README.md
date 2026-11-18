@@ -919,9 +919,10 @@ when a change is ready to merge. Older debug-recorder clips
 
 ## Privacy
 
-`public/privacy.html` (https://poopy-bird.com/privacy.html, linked from
-**Settings → About**, and the Play Store's privacy policy) says the same for
-players. Keep it in step with this list.
+`privacy.html` (https://poopy-bird.com/privacy.html, a second Vite page styled
+with the game's `style.css`; linked from the camera notice on the first Play,
+from **Settings → About**, and as the Play Store's privacy policy) says the
+same for players. Keep it in step with this list.
 
 - Video frames go to MediaPipe running in the page (WASM/WebGL) and nowhere
   else.
