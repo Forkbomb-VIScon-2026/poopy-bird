@@ -523,7 +523,27 @@ function updateStrainBars(): void {
   show($("cam-noface"), lost);
 }
 
+// The first time the camera would start (any path: Play, Try again, C), a notice explains it first. Once per browser.
+const cameraNotice = $("screen-camera");
+let afterCameraNotice: (() => void) | null = null;
+
+function closeCameraNotice(confirmed: boolean): void {
+  show(cameraNotice, false);
+  const next = afterCameraNotice;
+  afterCameraNotice = null;
+  if (!confirmed) return;
+  saveCameraNoticeSeen();
+  next?.();
+}
+
 async function startFaceMode(forceCalibrate = false): Promise<void> {
+  if (!tracker.ready && !loadCameraNoticeSeen()) {
+    if (state === "playing") togglePause();
+    afterCameraNotice = () => void startFaceMode(forceCalibrate);
+    show(cameraNotice, true);
+    armButtonKeys(300);
+    return;
+  }
   const token = ++flow;
   sound.unlock();
   mode = "face";
@@ -1055,6 +1075,7 @@ function startReady(ocean = false): void {
   snapshot.reset();
   clearRunPhotos();
   currentSnapshotUrl = null;
+  weddingFace = null;
   keyHeld = false;
   heldPointers.clear();
   keyPuff = 0;
@@ -1595,7 +1616,7 @@ window.addEventListener("keydown", (e) => {
   // Esc closes the settings (or the credits over them) too. Done takes Enter, and a screen's yellow button takes no other key (keyhints.ts).
   if (e.key === "Escape" && !cameraNotice.classList.contains("hidden")) {
     e.preventDefault();
-    show(cameraNotice, false);
+    closeCameraNotice(false);
     return;
   }
   if (e.key === "Escape" && !settingsPanel.classList.contains("hidden")) {
@@ -1757,22 +1778,8 @@ musicSwitch.addEventListener("change", () => {
   saveMusic(musicSwitch.checked);
 });
 on("btn-forget-faces", forgetFaces);
-// The first Play explains the camera before the browser asks for it.
-const cameraNotice = $("screen-camera");
-on("btn-face", () => {
-  if (loadCameraNoticeSeen()) {
-    goLandscape();
-    void startFaceMode();
-    return;
-  }
-  show(cameraNotice, true);
-  armButtonKeys(300);
-});
-onPlay("btn-camera-ok", () => {
-  saveCameraNoticeSeen();
-  show(cameraNotice, false);
-  void startFaceMode();
-});
+onPlay("btn-face", () => void startFaceMode());
+onPlay("btn-camera-ok", () => closeCameraNotice(true));
 onPlay("btn-keyboard", () => {
   show(settingsPanel, false);
   startKeyboardMode();
