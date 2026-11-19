@@ -43,12 +43,14 @@ import {
   PUFF_CALIBRATION_KEY,
   loadBest,
   loadCalibration,
+  loadCameraNoticeSeen,
   loadGraphics,
   loadKnownFacesJson,
   loadMuted,
   loadMusic,
   saveBest,
   saveCalibration,
+  saveCameraNoticeSeen,
   saveGraphics,
   saveKnownFacesJson,
   saveMusic,
@@ -75,7 +77,7 @@ import {
 } from "./strain";
 import { claimCoach, coachSay, dockCoach, releaseCoach, type CoachFace, type CoachLine } from "./ui/coach";
 import { $, homeOf, isTouch, replayAnimation, show, stopwatch, wait } from "./ui/dom";
-import { showRunPhotos, showRunStats } from "./ui/gameover";
+import { clearRunPhotos, showRunPhotos, showRunStats } from "./ui/gameover";
 import { hideToast, showToast } from "./ui/toast";
 
 // --- DOM ----------------------------------------------------------------------
@@ -98,6 +100,8 @@ const rotateScreen = $("screen-rotate");
 
 document.body.classList.toggle("touch", isTouch);
 document.body.classList.toggle("app", APP);
+// The app's WebView can't hand its bundled privacy.html to the browser: link the site's copy.
+if (APP) document.querySelectorAll<HTMLAnchorElement>("a.privacy-link").forEach((a) => (a.href = "https://poopy-bird.com/privacy.html"));
 
 function showScreen(name: keyof typeof screens | null): void {
   for (const [k, el] of Object.entries(screens)) show(el, k === name);
@@ -519,7 +523,27 @@ function updateStrainBars(): void {
   show($("cam-noface"), lost);
 }
 
+// The first time the camera would start (any path: Play, Try again, C), a notice explains it first. Once per browser.
+const cameraNotice = $("screen-camera");
+let afterCameraNotice: (() => void) | null = null;
+
+function closeCameraNotice(confirmed: boolean): void {
+  show(cameraNotice, false);
+  const next = afterCameraNotice;
+  afterCameraNotice = null;
+  if (!confirmed) return;
+  saveCameraNoticeSeen();
+  next?.();
+}
+
 async function startFaceMode(forceCalibrate = false): Promise<void> {
+  if (!tracker.ready && !loadCameraNoticeSeen()) {
+    if (state === "playing") togglePause();
+    afterCameraNotice = () => void startFaceMode(forceCalibrate);
+    show(cameraNotice, true);
+    armButtonKeys(300);
+    return;
+  }
   const token = ++flow;
   sound.unlock();
   mode = "face";
@@ -1049,6 +1073,9 @@ function startReady(ocean = false): void {
   game.reset();
   renderer.photos.clear();
   snapshot.reset();
+  clearRunPhotos();
+  currentSnapshotUrl = null;
+  weddingFace = null;
   keyHeld = false;
   heldPointers.clear();
   keyPuff = 0;
@@ -1587,6 +1614,11 @@ function focusHandlesEnter(): boolean {
 window.addEventListener("keydown", (e) => {
   if (isTyping(e)) return;
   // Esc closes the settings (or the credits over them) too. Done takes Enter, and a screen's yellow button takes no other key (keyhints.ts).
+  if (e.key === "Escape" && !cameraNotice.classList.contains("hidden")) {
+    e.preventDefault();
+    closeCameraNotice(false);
+    return;
+  }
   if (e.key === "Escape" && !settingsPanel.classList.contains("hidden")) {
     e.preventDefault();
     const close = creditsPanel.classList.contains("hidden") ? "btn-settings-done" : "btn-credits-back";
@@ -1747,6 +1779,7 @@ musicSwitch.addEventListener("change", () => {
 });
 on("btn-forget-faces", forgetFaces);
 onPlay("btn-face", () => void startFaceMode());
+onPlay("btn-camera-ok", () => closeCameraNotice(true));
 onPlay("btn-keyboard", () => {
   show(settingsPanel, false);
   startKeyboardMode();

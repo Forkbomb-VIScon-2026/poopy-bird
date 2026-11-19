@@ -119,6 +119,9 @@ export class FaceDetector {
     this.lock = null;
     this.lost = false;
     this.hadLock = false;
+    // Drop the last face crop with the face (camera stopped, new player); recreated on the next detection.
+    this.cropCanvas = null;
+    this.maskCanvas = null;
   }
 
   close(): void {

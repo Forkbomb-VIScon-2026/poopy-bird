@@ -919,8 +919,18 @@ when a change is ready to merge. Older debug-recorder clips
 
 ## Privacy
 
+`privacy.html` (https://poopy-bird.com/privacy.html, a second Vite page styled
+with the game's `style.css`; linked from the camera notice on the first Play,
+from **Settings → About**, and as the Play Store's privacy policy) says the
+same for players. Keep it in step with this list.
+
 - Video frames go to MediaPipe running in the page (WASM/WebGL) and nowhere
   else.
+- MediaPipe Tasks reports usage (task, OS, version, latencies; no images) to
+  Google every minute. `vite.config.ts` `noMediapipeTelemetry` switches that
+  off at build time, and fails the build if a MediaPipe update changes the
+  code it patches. The site's Content-Security-Policy (`connect-src 'self'`)
+  blocks it too.
 - The "finest strain" snapshot is taken in every face-mode run. It's a 200 px
   JPEG of your face at its most strained, kept in memory and shown on the
   game-over screen. It leaves the device only if you download or share it.

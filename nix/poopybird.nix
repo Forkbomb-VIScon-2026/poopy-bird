@@ -27,6 +27,7 @@ buildNpmPackage {
       ../package.json
       ../package-lock.json
       ../index.html
+      ../privacy.html
       ../vite.config.ts
       ../tsconfig.json
       ../tsconfig.node.json

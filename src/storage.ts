@@ -156,6 +156,17 @@ export function saveMuted(muted: boolean): void {
   storageSet(MUTED_KEY, muted ? "1" : "0");
 }
 
+const CAMERA_NOTICE_KEY = "poopybird.cameraNotice.v1";
+
+/** Whether the camera notice was shown and confirmed (the first Play). */
+export function loadCameraNoticeSeen(): boolean {
+  return storageGet(CAMERA_NOTICE_KEY) === "1";
+}
+
+export function saveCameraNoticeSeen(): void {
+  storageSet(CAMERA_NOTICE_KEY, "1");
+}
+
 export function loadBest(): number {
   const v = Number(storageGet(BEST_KEY));
   return Number.isFinite(v) && v > 0 ? v : 0;

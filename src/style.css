@@ -656,6 +656,12 @@ svg.face {
   margin: 14px 0;
 }
 
+/* Links that look like buttons (the privacy links). */
+a.btn {
+  display: inline-block;
+  text-decoration: none;
+}
+
 .btn {
   font: inherit;
   font-weight: 800;
@@ -740,6 +746,25 @@ svg.face {
 .btn small {
   font-weight: 400;
   opacity: 0.7;
+}
+
+/* The first Play's camera notice (#screen-camera). */
+.screen.camera-notice {
+  z-index: 20;
+}
+
+.camera-notice p {
+  margin: 6px 0;
+  font-size: 18px;
+}
+
+.camera-notice .camera-notice-promise {
+  font-weight: 800;
+}
+
+/* The icon sprite in index.html: defines symbols, takes no space. */
+.svg-defs {
+  position: absolute;
 }
 
 .privacy {

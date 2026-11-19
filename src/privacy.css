@@ -1,0 +1,65 @@
+/* privacy.html: the game's own styles (cards, buttons, title), on a page that scrolls. */
+@import "./style.css";
+
+html,
+body.privacy-page {
+  height: auto;
+  min-height: 100%;
+  overflow: auto;
+  -webkit-user-select: text;
+  user-select: text;
+  touch-action: auto;
+}
+
+.privacy-page main {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 18px;
+  padding: max(24px, env(safe-area-inset-top)) max(16px, env(safe-area-inset-right))
+    max(40px, env(safe-area-inset-bottom)) max(16px, env(safe-area-inset-left));
+}
+
+.privacy-page .title {
+  font-size: clamp(44px, 9vw, 84px);
+  text-decoration: none;
+  line-height: 1;
+  /* Room for its drop shadow and float, as on the start screen. */
+  margin: 4px 0 20px;
+}
+
+/* Like the credits card, but the page scrolls instead of the card. */
+.privacy-card {
+  max-height: none;
+  overflow: visible;
+  text-align: left;
+  line-height: 1.45;
+}
+
+.privacy-card h2 {
+  text-align: center;
+}
+
+.privacy-card h3 {
+  margin: 18px 0 4px;
+}
+
+.privacy-card p {
+  margin: 4px 0;
+}
+
+.privacy-card a:not(.btn) {
+  color: inherit;
+}
+
+.privacy-lead {
+  font-size: 22px;
+  font-weight: 900;
+  text-align: center;
+}
+
+.privacy-updated {
+  margin-top: 18px !important;
+  font-size: 14px;
+  opacity: 0.75;
+}

@@ -15,9 +15,11 @@ export class StrainSnapshot {
   private peak = 0;
   private has = false;
 
+  /** Forgets the captured face, pixels included. */
   reset(): void {
     this.peak = 0;
     this.has = false;
+    this.canvas.width = 0;
   }
 
   /** Strainedness (0..1) of the captured face; 0 if none. */
