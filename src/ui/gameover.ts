@@ -37,6 +37,12 @@ const PRINT_SCALE = 2;
  * strain (static in index.html, first), then every front page, wedding photo
  * and the trophy photo in the order they were taken (photo ids count up).
  */
+/** Drops the last run's pictures from the game-over screen (the privacy page: gone when you play again). */
+export function clearRunPhotos(): void {
+  for (const el of $("go-photos").querySelectorAll(".go-print:not(#go-snapshot)")) el.remove();
+  $<HTMLImageElement>("go-snapshot-img").removeAttribute("src");
+}
+
 export function showRunPhotos(game: Game, photos: ReadonlyMap<number, Photo>, hasSnapshot: boolean): void {
   const strip = $("go-photos");
   for (const el of strip.querySelectorAll(".go-print:not(#go-snapshot)")) el.remove();

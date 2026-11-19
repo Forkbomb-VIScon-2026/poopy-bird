@@ -77,7 +77,7 @@ import {
 } from "./strain";
 import { claimCoach, coachSay, dockCoach, releaseCoach, type CoachFace, type CoachLine } from "./ui/coach";
 import { $, homeOf, isTouch, replayAnimation, show, stopwatch, wait } from "./ui/dom";
-import { showRunPhotos, showRunStats } from "./ui/gameover";
+import { clearRunPhotos, showRunPhotos, showRunStats } from "./ui/gameover";
 import { hideToast, showToast } from "./ui/toast";
 
 // --- DOM ----------------------------------------------------------------------
@@ -1053,6 +1053,8 @@ function startReady(ocean = false): void {
   game.reset();
   renderer.photos.clear();
   snapshot.reset();
+  clearRunPhotos();
+  currentSnapshotUrl = null;
   keyHeld = false;
   heldPointers.clear();
   keyPuff = 0;
